@@ -20,8 +20,8 @@ contract S2ONFT is Initializable, ERC721Upgradeable, AccessControlUpgradeable, O
 
     struct Settings {
         uint256 maxSupply;
-        uint256 minFlowRate;
-        uint256 minIncrement;
+        int96 minFlowRate;
+        int96 minIncrement;
         string baseURI;
     }
     Settings public settings;
