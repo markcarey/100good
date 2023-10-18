@@ -45,6 +45,10 @@ contract S2ONFT is Initializable, ERC721Upgradeable, AccessControlUpgradeable, O
         return settings.baseURI;
     }
 
+    function exists(uint256 tokenId) external view returns (bool) {
+        return _exists(tokenId);
+    }
+
     function mint() public onlyRole(MINTER_ROLE) {
         uint256 tokenId = _tokenIdCounter.current();
         require(tokenId < settings.maxSupply, "S2ONFT: max supply reached");
@@ -53,7 +57,7 @@ contract S2ONFT is Initializable, ERC721Upgradeable, AccessControlUpgradeable, O
     }
 
     function onStreamChange(address from, address to, uint256 tokenId) public onlyRole(SUPERAPP_ROLE) {
-        // TODO: check settings here?
+        // TODO: check settings here, or in SuperApp code?
         _transfer(from, to, tokenId);
     }
 
