@@ -66,9 +66,8 @@ contract S2OFactory is Initializable, ERC2771Context {
         emit S2ONFTCreated(owner, nft);
         address superApp = Clones.cloneDeterministic(superAppImplementation, salt);
         S2OSuperApp(superApp).initialize(_msgSender(), owner, feeRecipient, _superToken, host, cfa, nft, _settings);
+        emit S2OSuperAppCreated(owner, superApp);
         return (nft, superApp);
     }
-
-    
 
 }
