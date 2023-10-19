@@ -1,0 +1,35 @@
+{
+  "name": "stream2own",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markcarey/stream2own.git"
+  },
+  "author": "Mark Carey",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/markcarey/stream2own/issues"
+  },
+  "homepage": "https://github.com/markcarey/stream2own#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.8.2",
+    "@openzeppelin/contracts-upgradeable": "^4.8.2",
+    "@superfluid-finance/ethereum-contracts": "^1.8.1",
+    "dotenv": "^16.3.1",
+    "ethers": "^5.7.2"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "@nomiclabs/hardhat-waffle": "^2.0.5",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "@tenderly/hardhat-tenderly": "^1.7.7",
+    "hardhat": "^2.17.1"
+  }
+}

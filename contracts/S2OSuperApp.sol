@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
-
+// SPDX-License-Identifier: MIT
 pragma solidity >= 0.8.0;
 
 import {
@@ -22,8 +21,8 @@ import {
     CFAv1Library
 } from "./superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+//import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+//import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 //import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -31,9 +30,15 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777Upgradeable.sol";
 import { IERC1820RegistryUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
+import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 
-contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase, AccessControlUpgradeable {
-    using SafeMath for uint256;
+interface S2ONFT {
+    function exists(uint256 tokenId) external view returns (bool);
+    function onStreamChange(address from, address to, uint256 tokenId) external;
+}
+
+contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase, AccessControlUpgradeable, ERC2771ContextUpgradeable {
+    //using SafeMath for uint256;
     using CFAv1Library for CFAv1Library.InitData;
     //using EnumerableSet for EnumerableSet.AddressSet;
     
@@ -42,13 +47,13 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
     IConstantFlowAgreementV1 _cfa;
     ISuperToken private _acceptedToken;
 
-    IERC721 public nftContract;
+    S2ONFT public nftContract;
 
     struct Settings {
-        uint256 maxSupply;
         int96 minFlowRate;
         int96 minIncrement;
-        string baseURI;
+        int96 protocolFeePercent;
+        int96 previousOwnerFeePercent;
     }
     Settings public settings;
 
@@ -75,6 +80,11 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
     address beneficiary;
     int96 beneficiaryFlowRate;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() ERC2771ContextUpgradeable(0xBf175FCC7086b4f9bd59d5EAE8eA67b8f940DE0d) {
+       _disableInitializers();
+    }
+
     function initialize(
         address _admin,
         address _beneficiary,
@@ -93,7 +103,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         _host = ISuperfluid(host);
         _cfa = IConstantFlowAgreementV1(cfa);
 
-        nftContract = IERC721(_nftContract);
+        nftContract = S2ONFT(_nftContract);
         admin = _admin;
         feeRecipient = _feeRecipient;
         beneficiary = _beneficiary;
@@ -148,14 +158,15 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         external override
         onlyExpected(_superToken, _agreementClass)
         onlyHost
-        onlyIfStreamsEnabled
         returns (bytes memory newCtx)
     {
         newCtx = _ctx;
         (address streamer,) = abi.decode(_agreementData, (address, address));
-        ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
-        uint256 tokenId = abi.decode(decompiledContext.userData, (uint256));
-        (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, agreementId);
+        //ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
+        uint256 tokenId = abi.decode(_host.decodeCtx(_ctx).userData, (uint256));
+        // idea: mint if tokenId doesn't exist?
+        require(nftContract.exists(tokenId), "SuperApp: token does not exist");
+        (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
         if (tokenFlows[tokenId].owner == address(0)) {
             // new stream
             require(inFlowRate > settings.minFlowRate, "SuperApp: flowRate below minimum");
@@ -174,8 +185,8 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         tokenFlows[tokenId].flowRate = inFlowRate;
         tokenFlows[tokenId].lastUpdated = block.timestamp;
         tokenIds[streamer] = tokenId;
-        // TODO: transfer the NFT to the new owner
-        return _updateOutflows(newCtx, tokenFlows[tokenId], false);
+        nftContract.onStreamChange(tokenFlows[tokenId].previousOwner == address(0) ? address(nftContract) : tokenFlows[tokenId].previousOwner, streamer, tokenId);
+        return _updateOutflows(newCtx, tokenId, false);
     }
 
     function afterAgreementUpdated(
@@ -189,24 +200,22 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         external override
         onlyExpected(_superToken, _agreementClass)
         onlyHost
-        onlyIfStreamsEnabled
         returns (bytes memory newCtx)
     {
         newCtx = _ctx;
         (address streamer,) = abi.decode(_agreementData, (address, address));
         uint256 tokenId = tokenIds[streamer];
-        // TODO: check if tokern exists
-        (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, agreementId);
+        (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
         require(inFlowRate > tokenFlows[tokenId].flowRate, "SuperApp: can only increase flowRate");
         tokenFlows[tokenId].flowRate = inFlowRate;
         tokenFlows[tokenId].lastUpdated = block.timestamp;
         // @dev tokenId remains with streamer, no need to transfer NFT
-        return _updateOutflows(newCtx, tokenFlows[tokenId], false);
+        return _updateOutflows(newCtx, tokenId, false);
     }
     function afterAgreementTerminated(
         ISuperToken _superToken,
         address _agreementClass,
-        bytes32 _agreementId,
+        bytes32 ,//_agreementId,
         bytes calldata _agreementData,
         bytes calldata ,//_cbdata,
         bytes calldata _ctx
@@ -220,24 +229,23 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         (address streamer,) = abi.decode(_agreementData, (address, address));
         uint256 tokenId = tokenIds[streamer];
         // TODO: transfer token back to nftContract
-
-        return _updateOutflows(newCtx, tokenFlows[tokenId], true);
+        nftContract.onStreamChange(streamer, address(nftContract), tokenId);
+        return _updateOutflows(newCtx, tokenId, true);
     }
 
     function _updateOutflows(
         bytes memory _ctx,
-        tokenFlow memory _tokenFlow,
+        uint256 tokenId,
         bool _isTermination
     )
         private
         returns (bytes memory newCtx)
     {
         newCtx = _ctx;
-
         // @dev incremental flowrates:
-        int96 fee = _tokenFlow.flowRate * settings.protocolFeePercent / 1 ether;
-        int96 previousOwnerFee = _tokenFlow.flowRate * settings.previousOwnerFeePercent / 1 ether;
-        int96 remainder = _tokenFlow.flowRate - fee - previousOwnerFee;
+        int96 fee = tokenFlows[tokenId].flowRate * settings.protocolFeePercent / 1 ether;
+        int96 previousOwnerFee = tokenFlows[tokenId].flowRate * settings.previousOwnerFeePercent / 1 ether;
+        int96 remainder = tokenFlows[tokenId].flowRate - fee - previousOwnerFee;
 
         if (_isTermination) {
             fee = -fee;
@@ -246,15 +254,16 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         }
         feeFlowRate += fee;
         newCtx = cfaV1.flowWithCtx(newCtx, feeRecipient, _acceptedToken, feeFlowRate);
-        if (_tokenFlow.previousOwner != address(0)) {
+        if (tokenFlows[tokenId].previousOwner != address(0)) {
             (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
-            newCtx = cfaV1.flowWithCtx(newCtx, _tokenFlow.previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
+            newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
         }
         beneficiaryFlowRate += remainder;
         newCtx = cfaV1.flowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
+        if (_isTermination) {
+            delete tokenFlows[tokenId];
+        }
     }
-
-
 
     function getNetFlow() public view returns (int96) {
        return _cfa.getNetFlow(_acceptedToken, address(this));
@@ -274,6 +283,16 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         require(_isSameToken(superToken), "SuperApp: not accepted token");
         require(_isCFAv1(agreementClass), "SuperApp: only CFAv1 supported");
         _;
+    }
+
+    // The following functions are overrides required by Solidity.
+
+    function _msgSender() internal view override(ERC2771ContextUpgradeable, ContextUpgradeable) returns (address) {
+        return super._msgSender();
+    }
+
+    function _msgData() internal view override(ERC2771ContextUpgradeable, ContextUpgradeable) returns (bytes calldata) {
+        return super._msgData();
     }
 
     function tokensReceived(
