@@ -13,6 +13,7 @@ interface S2ONFT {
         uint256 maxSupply;
     }
     function initialize(address _admin, address _owner, Settings memory _settings) external;
+    function grantRole(bytes32 role, address account) external;
 }
 interface S2OSuperApp {
     struct Settings {
@@ -30,6 +31,7 @@ contract S2OFactory is Initializable, ERC2771Context {
     address private host;
     address private cfa;
     address private feeRecipient;
+    bytes32 public constant SUPERAPP_ROLE = keccak256("SUPERAPP_ROLE");
 
     constructor() ERC2771Context(0xBf175FCC7086b4f9bd59d5EAE8eA67b8f940DE0d) {
         //_disableInitializers();
@@ -67,6 +69,7 @@ contract S2OFactory is Initializable, ERC2771Context {
         address superApp = Clones.cloneDeterministic(superAppImplementation, salt);
         S2OSuperApp(superApp).initialize(_msgSender(), owner, feeRecipient, _superToken, host, cfa, nft, _settings);
         emit S2OSuperAppCreated(owner, superApp);
+        S2ONFT(nft).grantRole(SUPERAPP_ROLE, superApp);
         return (nft, superApp);
     }
 
