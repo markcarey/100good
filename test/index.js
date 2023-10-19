@@ -15,6 +15,7 @@ const streamerJSON = require("../artifacts/contracts/Streamer.sol/Streamer.json"
 const hostJSON = require("./abis/host.json");
 const cfaJSON = require("./abis/cfa.json");
 const superJSON = require("./abis/super.json");
+const sTokenJSON = require("./abis/sToken.json");
 const erc20JSON = require("./abis/erc20.json");
 
 // Base addresses
@@ -59,7 +60,7 @@ describe("Streamer", function () {
         await streamer.deployTransaction.wait();
         addr.sToken = await streamer.token();
         console.log("addr.sToken: ", addr.sToken);
-        sToken = new ethers.Contract(addr.sToken, sTokenABI, signer);
+        sToken = new ethers.Contract(addr.sToken, sTokenJSON.abi, signer);
         expect(addr.sToken).to.not.equal("");
     });
 
@@ -74,14 +75,14 @@ describe("Streamer", function () {
 describe("Factory", function () {
 
     it("should deploy the nft implementation contract", async function() {
-        const S2ONFT = await ethers.getContractFactory("S2ONFT");
+        const S2ONFT = await ethers.getContractFactory("contracts/S2ONFT.sol:S2ONFT");
         const implementation = await S2ONFT.deploy();
-        addr.nftImplementationmplementation = implementation.address;
+        addr.nftImplementation = implementation.address;
         expect(implementation).to.not.equal("");
     });
 
     it("should deploy the app implementation contract", async function() {
-        const S2OSuperApp = await ethers.getContractFactory("S2OSuperApp");
+        const S2OSuperApp = await ethers.getContractFactory("contracts/S2OSuperApp.sol:S2OSuperApp");
         const implementation = await S2OSuperApp.deploy();
         addr.appImplementation = implementation.address;
         expect(implementation).to.not.equal("");
@@ -89,8 +90,10 @@ describe("Factory", function () {
 
     it("should deploy the factory contract", async function() {
         const Factory = await ethers.getContractFactory("S2OFactory");
-        factory = await Factory.deploy(addr.nftImplementation, addr.appImplementation, addr.host, addr.cfa, addr.feeRecipient);
+        factory = await Factory.deploy();
         addr.factory = factory.address;
+        await factory.deployTransaction.wait();
+        await factory.initialize(addr.nftImplementation, addr.appImplementation, addr.host, addr.cfa, addr.feeRecipient);
         expect(addr.factory).to.not.equal("");
     });
 
