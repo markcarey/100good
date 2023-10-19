@@ -25,13 +25,14 @@ import {
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 //import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777Upgradeable.sol";
 import { IERC1820RegistryUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 
-contract S2OSuperApp is IERC777RecipientUpgradeable, SuperAppBase, AccessControl {
+contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase, AccessControlUpgradeable {
     using SafeMath for uint256;
     using CFAv1Library for CFAv1Library.InitData;
     //using EnumerableSet for EnumerableSet.AddressSet;
@@ -74,7 +75,7 @@ contract S2OSuperApp is IERC777RecipientUpgradeable, SuperAppBase, AccessControl
     address beneficiary;
     int96 beneficiaryFlowRate;
 
-    constructor (
+    function initialize(
         address _admin,
         address _beneficiary,
         address _feeRecipient,
@@ -83,9 +84,9 @@ contract S2OSuperApp is IERC777RecipientUpgradeable, SuperAppBase, AccessControl
         address cfa,
         address _nftContract,
         Settings memory _settings
-    )
+    ) public virtual initializer
     {
-
+        __AccessControl_init_unchained();
         IERC1820RegistryUpgradeable _erc1820 = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
         _erc1820.setInterfaceImplementer(address(this), keccak256("ERC777TokensRecipient"), address(this));
 
