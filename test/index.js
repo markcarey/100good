@@ -5,7 +5,7 @@ const networkName = hre.network.name;
 
 require('dotenv').config();
 
-const chain = hre.network.name;
+var chain = hre.network.name;
 console.log("chain: ", chain);
 
 const factoryJSON = require("../artifacts/contracts/S2OFactory.sol/S2OFactory.json");
@@ -18,26 +18,43 @@ const superJSON = require("./abis/super.json");
 const sTokenJSON = require("./abis/sToken.json");
 const erc20JSON = require("./abis/erc20.json");
 
-// Base addresses
-var addr = {
-    "factory": "",
-    "nftImplementation": "",
-    "appImplementation": "",
-    "streamer": "",
-    "sToken": "",
-    "superApp": "",
-    "nft": "",
-    "feeRecipient": process.env.PUBLIC_KEY,
-    "host": "0x4C073B3baB6d8826b8C5b229f3cfdC1eC6E47E74",
-    "cfa": "0x19ba78B9cDB05A877718841c574325fdB53601bb",
-    "stf": "0xe20B9a38E0c96F61d1bA6b42a61512D56Fea1Eb3",
-    "USDbC": "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA",
-    "USDbCx": "0x4dB26C973FaE52f43Bd96A8776C2bf1b0DC29556",
-    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "USDCx": "0xD04383398dD2426297da660F9CCA3d439AF9ce1b",
-    "cbETH": "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",
-    "WETH": "0x4200000000000000000000000000000000000006",
-};
+if (chain == "localhost") {
+    chain = "zkevm";
+}
+
+var addr = {};
+
+if ("chain" == "base") {
+    // Base addresses
+    addr = {
+        "factory": "",
+        "nftImplementation": "",
+        "appImplementation": "",
+        "streamer": "",
+        "sToken": "",
+        "superApp": "",
+        "nft": "",
+        "feeRecipient": process.env.PUBLIC_KEY,
+        "host": "0x4C073B3baB6d8826b8C5b229f3cfdC1eC6E47E74",
+        "cfa": "0x19ba78B9cDB05A877718841c574325fdB53601bb",
+        "stf": "0xe20B9a38E0c96F61d1bA6b42a61512D56Fea1Eb3",
+    };
+} else if (chain == "zkevm") {
+    // zkEVM testnet addresses
+    addr = {
+        "factory": "",
+        "nftImplementation": "",
+        "appImplementation": "",
+        "streamer": "",
+        "sToken": "",
+        "superApp": "",
+        "nft": "",
+        "feeRecipient": process.env.PUBLIC_KEY,
+        "host": "0xe64f81d5dDdA1c7172e5C6d964E8ef1BD82D8704",
+        "cfa": "0x1EAa5ceA064aab2692AF257FB31f5291fdA3Cdee",
+        "stf": "0x0F3B163623F05b2BfF42956f7C7bd31456bd83a2",
+    };
+}
 
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, ethers.provider);
 const host = new ethers.Contract(addr.host, hostJSON.abi, signer);
@@ -68,6 +85,11 @@ describe("Streamer", function () {
         var to = process.env.PUBLIC_KEY;
         await expect(streamer.drop(to, "1000000000000000000000000"))
             .to.emit(sToken, 'Transfer');
+    });
+
+    it("deployer should own 1M Super Tokens", async function() {
+        expect(await sToken.balanceOf(process.env.PUBLIC_KEY))
+            .to.be.gt(0);
     });
 
 });
@@ -124,5 +146,50 @@ describe("Factory", function () {
     });
 
 });
+
+describe("NFT", function () {
+
+    it("should mint an nft to the contract itself", async function() {
+        nft = new ethers.Contract(addr.nft, nftJSON.abi, signer);
+        const txn = await nft.mint();
+        const { events } = await txn.wait();
+        const Event = events.find(x => x.event === "Transfer");
+        addr.tokenId = Event.args[2];
+        console.log("addr.tokenId: ", addr.tokenId);
+        const owner = await nft.ownerOf(addr.tokenId);
+        expect(owner).to.equal(addr.nft);
+    });
+
+});
+
+describe("Streams and Super App Callbacks", function () {
+
+    it("should stream to the Super app", async function() {
+        const flowRate = "1000000000000000000"; // 1 sToken per second
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        await host.callAgreement(
+            addr.cfa,
+            iface.encodeFunctionData("createFlow", [
+                addr.sToken,
+                addr.superApp,
+                flowRate,
+                "0x"
+            ]),
+            userData
+        );
+        var flow = await cfa.getFlow(addr.sToken, process.env.PUBLIC_KEY, addr.superApp);
+        console.log("flow: ", flow);
+        expect(1).to.equal(1);
+    });
+
+    it("token should now be owner by streamer", async function() {
+        const owner = await nft.ownerOf(addr.tokenId);
+        expect(owner).to.equal(process.env.PUBLIC_KEY);
+    });
+
+});
+
 
 

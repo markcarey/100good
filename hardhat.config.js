@@ -3,7 +3,7 @@ const dot = require('dotenv').config();
 
 require("@nomiclabs/hardhat-etherscan");
 require("@nomicfoundation/hardhat-chai-matchers");
-const { API_URL_BASE, API_URL_BASEGOERLI, PRIVATE_KEY, BASESCAN_API_KEY } = process.env;
+const { API_URL_BASE, API_URL_BASEGOERLI, PRIVATE_KEY, BASESCAN_API_KEY, API_URL_ZKEVMTESTNET } = process.env;
 
 module.exports = {
   solidity: {
@@ -31,13 +31,13 @@ module.exports = {
       },
     },
   },
-  defaultNetwork: "base",
+  defaultNetwork: "zkevm",
   networks: {
     hardhat: {
       accounts: [{ privateKey: `0x${PRIVATE_KEY}`, balance: "10000000000000000000000"}],
       forking: {
-        url: API_URL_BASE,
-        blockNumber: 4604727,
+        url: API_URL_ZKEVMTESTNET,
+        blockNumber: 2985760,
         gasPrice: 1000000000 * 10,
       },
       loggingEnabled: true,
@@ -53,7 +53,12 @@ module.exports = {
     base: {
       url: API_URL_BASE,
       accounts: [`0x${PRIVATE_KEY}`]
-    }
+    },
+    zkevm: {
+      url: API_URL_ZKEVMTESTNET,
+      accounts: [`0x${PRIVATE_KEY}`],
+      gasPrice: 1000000000 * 10,
+    },
   },
    etherscan: {
     apiKey: {

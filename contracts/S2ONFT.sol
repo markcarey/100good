@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -9,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 //import '@openzeppelin/contracts/utils/Strings.sol';
 
-contract S2ONFT is Initializable, ERC721Upgradeable, AccessControlUpgradeable, OwnableUpgradeable, ERC2771ContextUpgradeable {
+contract S2ONFT is Initializable, ERC721Upgradeable, IERC721Receiver, AccessControlUpgradeable, OwnableUpgradeable, ERC2771ContextUpgradeable {
     using CountersUpgradeable for CountersUpgradeable.Counter;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -35,7 +36,7 @@ contract S2ONFT is Initializable, ERC721Upgradeable, AccessControlUpgradeable, O
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(MINTER_ROLE, _admin);
-        _grantRole(SUPERAPP_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _transferOwnership(_owner);
         baseURI = _settings.uri;
         maxSupply = _settings.maxSupply;
@@ -59,6 +60,10 @@ contract S2ONFT is Initializable, ERC721Upgradeable, AccessControlUpgradeable, O
     function onStreamChange(address from, address to, uint256 tokenId) public onlyRole(SUPERAPP_ROLE) {
         // TODO: check settings here, or in SuperApp code?
         _transfer(from, to, tokenId);
+    }
+
+    function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 
     // The following functions are overrides required by Solidity.

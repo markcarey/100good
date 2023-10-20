@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >= 0.8.0;
 
+// TODO: remove console.log later
+import "hardhat/console.sol";
+
 import {
     ISuperfluid,
     ISuperToken,
@@ -160,20 +163,25 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         onlyHost
         returns (bytes memory newCtx)
     {
+        console.log("afterAgreementCreated");
         newCtx = _ctx;
         (address streamer,) = abi.decode(_agreementData, (address, address));
+        console.log("streamer", streamer);
         //ISuperfluid.Context memory decompiledContext = _host.decodeCtx(_ctx);
         uint256 tokenId = abi.decode(_host.decodeCtx(_ctx).userData, (uint256));
+        console.log("tokenId", tokenId);
         // idea: mint if tokenId doesn't exist?
         require(nftContract.exists(tokenId), "SuperApp: token does not exist");
         (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
+        console.log("inFlowRate", uint256(uint96(inFlowRate)));
         if (tokenFlows[tokenId].owner == address(0)) {
             // new stream
-            require(inFlowRate > settings.minFlowRate, "SuperApp: flowRate below minimum");
+            console.log("settings.minFlowRate", uint256(uint96(settings.minFlowRate)));
+            require(inFlowRate >= settings.minFlowRate, "SuperApp: flowRate below minimum");
             tokenFlows[tokenId].previousOwner = address(0);
         } else {
             // replacement stream
-            require(inFlowRate > (tokenFlows[tokenId].flowRate + settings.minIncrement), "SuperApp: flowRate below increment");
+            require(inFlowRate >= (tokenFlows[tokenId].flowRate + settings.minIncrement), "SuperApp: flowRate below increment");
             newCtx = cfaV1.deleteFlowWithCtx(newCtx, tokenFlows[tokenId].owner, address(this), _acceptedToken);
             if(tokenFlows[tokenId].previousOwner != address(0)) {
                 (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
@@ -185,7 +193,9 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         tokenFlows[tokenId].flowRate = inFlowRate;
         tokenFlows[tokenId].lastUpdated = block.timestamp;
         tokenIds[streamer] = tokenId;
+        console.log("before onStreamChange");
         nftContract.onStreamChange(tokenFlows[tokenId].previousOwner == address(0) ? address(nftContract) : tokenFlows[tokenId].previousOwner, streamer, tokenId);
+        console.log("after onStreamChange");
         return _updateOutflows(newCtx, tokenId, false);
     }
 
@@ -241,11 +251,17 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         private
         returns (bytes memory newCtx)
     {
+        console.log("_updateOutflows");
         newCtx = _ctx;
         // @dev incremental flowrates:
-        int96 fee = tokenFlows[tokenId].flowRate * settings.protocolFeePercent / 1 ether;
-        int96 previousOwnerFee = tokenFlows[tokenId].flowRate * settings.previousOwnerFeePercent / 1 ether;
+        console.log("tokenFlows[tokenId].flowRate", uint256(uint96(tokenFlows[tokenId].flowRate)));
+        console.log("settings.protocolFeePercent", uint256(uint96(settings.protocolFeePercent)));
+        int96 fee = int96(int256( uint256(uint96(tokenFlows[tokenId].flowRate)) * uint256(uint96(settings.protocolFeePercent)) / 1 ether ));
+        console.log("fee", uint256(uint96(fee)));
+        int96 previousOwnerFee = int96(int256( uint256(uint96(tokenFlows[tokenId].flowRate)) * uint256(uint96(settings.previousOwnerFeePercent)) / 1 ether ));
+        console.log("previousOwnerFee", uint256(uint96(previousOwnerFee)));
         int96 remainder = tokenFlows[tokenId].flowRate - fee - previousOwnerFee;
+        console.log("remainder", uint256(uint96(remainder)));
 
         if (_isTermination) {
             fee = -fee;
@@ -253,12 +269,14 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
             remainder = -remainder;
         }
         feeFlowRate += fee;
+        console.log("feeFlowRate", uint256(uint96(feeFlowRate)));
         newCtx = cfaV1.flowWithCtx(newCtx, feeRecipient, _acceptedToken, feeFlowRate);
         if (tokenFlows[tokenId].previousOwner != address(0)) {
             (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
             newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
         }
         beneficiaryFlowRate += remainder;
+        console.log("beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate)));
         newCtx = cfaV1.flowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
         if (_isTermination) {
             delete tokenFlows[tokenId];
