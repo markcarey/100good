@@ -49,7 +49,7 @@ if ("chain" == "base") {
         "sToken": "",
         "superApp": "",
         "nft": "",
-        "feeRecipient": process.env.PUBLIC_KEY,
+        "feeRecipient": "0x827a0F679D7CE70e7a0a6A1Ef2be473f1Cc8d7bb", // "feeRecipient"
         "host": "0xe64f81d5dDdA1c7172e5C6d964E8ef1BD82D8704",
         "cfa": "0x1EAa5ceA064aab2692AF257FB31f5291fdA3Cdee",
         "stf": "0x0F3B163623F05b2BfF42956f7C7bd31456bd83a2",
