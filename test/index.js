@@ -247,7 +247,7 @@ describe("Streams and Super App Callbacks", function () {
     });
 
     it("should increase stream to the Super app", async function() {
-        const flowRate = "1000000000000000001"; // 1+ sToken per second
+        const flowRate = "2000000000000000000"; // 2 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -267,7 +267,7 @@ describe("Streams and Super App Callbacks", function () {
     });
 
     it("should revert due to stream increment too low", async function() {
-        const flowRate = "1000000000000000002"; // 1+ sToken per second
+        const flowRate = "2050000000000000000"; // 2.05 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -289,7 +289,7 @@ describe("Streams and Super App Callbacks", function () {
     });
 
     it("should stream to takeover an existing token with actove stream", async function() {
-        const flowRate = "2000000000000000000"; // 3 sToken per second
+        const flowRate = "3000000000000000000"; // 3 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -318,7 +318,7 @@ describe("Streams and Super App Callbacks", function () {
     });
 
     it("should stream from signerThree to takeover an existing token with active stream", async function() {
-        const flowRate = "3000000000000000000"; // 3 sToken per second
+        const flowRate = "4000000000000000000"; // 4 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -350,6 +350,34 @@ describe("Streams and Super App Callbacks", function () {
         var flow = await cfa.getFlow(addr.sToken, addr.superApp, await signerTwo.getAddress() );
         console.log("flow: ", flow);
         expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it("should STOP stream from signerThree", async function() {
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerThree).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("deleteFlow", [
+                    addr.sToken,
+                    await signerThree.getAddress(),
+                    addr.superApp,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerThree.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.equal(0);
+    });
+
+    it("token should now be owned by the nft CONTRACT", async function() {
+        const owner = await nft.ownerOf(addr.tokenId);
+        expect(owner).to.equal(addr.nft);
     });
 
 });

@@ -226,7 +226,8 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         uint256 tokenId = tokenIds[streamer];
         (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
         int96 flowRateDelta = inFlowRate - tokenFlows[tokenId].flowRate;
-        require(inFlowRate > tokenFlows[tokenId].flowRate, "SuperApp: can only increase flowRate");
+        //require(inFlowRate > tokenFlows[tokenId].flowRate, "SuperApp: can only increase flowRate");
+        require(inFlowRate >= (tokenFlows[tokenId].flowRate + settings.minIncrement), "SuperApp: flowRate below increment");
         tokenFlows[tokenId].flowRate = inFlowRate;
         tokenFlows[tokenId].lastUpdated = block.timestamp;
         // @dev tokenId remains with streamer, no need to transfer NFT
@@ -288,6 +289,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         }
         feeFlowRate += fee;
         console.log("feeFlowRate", uint256(uint96(feeFlowRate)));
+        console.logInt(feeFlowRate);
         //if (feeFlowRate == fee) {
             //console.log("fee createFlowWithCtx");
         //    newCtx = cfaV1.createFlowWithCtx(newCtx, feeRecipient, _acceptedToken, feeFlowRate);
