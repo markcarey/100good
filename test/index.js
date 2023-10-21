@@ -34,7 +34,7 @@ if ("chain" == "base") {
         "sToken": "",
         "superApp": "",
         "nft": "",
-        "feeRecipient": process.env.PUBLIC_KEY,
+        "feeRecipient": "0x827a0F679D7CE70e7a0a6A1Ef2be473f1Cc8d7bb", // "feeRecipient"
         "host": "0x4C073B3baB6d8826b8C5b229f3cfdC1eC6E47E74",
         "cfa": "0x19ba78B9cDB05A877718841c574325fdB53601bb",
         "stf": "0xe20B9a38E0c96F61d1bA6b42a61512D56Fea1Eb3",
@@ -57,6 +57,9 @@ if ("chain" == "base") {
 }
 
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, ethers.provider);
+const signerOne = new ethers.Wallet(process.env.TR8_ONE_PRIV, ethers.provider);
+const signerTwo = new ethers.Wallet(process.env.TR8_TWO_PRIV, ethers.provider);
+const signerThree = new ethers.Wallet(process.env.TR8_THREE_PRIV, ethers.provider);
 const host = new ethers.Contract(addr.host, hostJSON.abi, signer);
 const cfa = new ethers.Contract(addr.cfa, cfaJSON.abi, signer);
 var factory, streamer, nft, sToken, superApp;
@@ -90,6 +93,24 @@ describe("Streamer", function () {
     it("deployer should own 1M Super Tokens", async function() {
         expect(await sToken.balanceOf(process.env.PUBLIC_KEY))
             .to.be.gt(0);
+    });
+
+    it("should drop 1M Super Tokens to signerOne", async function() {
+        var to = await signerOne.getAddress();
+        await expect(streamer.drop(to, "1000000000000000000000000"))
+            .to.emit(sToken, 'Transfer');
+    });
+
+    it("should drop 1M Super Tokens to signerTwo", async function() {
+        var to = await signerTwo.getAddress();
+        await expect(streamer.drop(to, "1000000000000000000000000"))
+            .to.emit(sToken, 'Transfer');
+    });
+
+    it("should drop 1M Super Tokens to signerThree", async function() {
+        var to = await signerThree.getAddress();
+        await expect(streamer.drop(to, "1000000000000000000000000"))
+            .to.emit(sToken, 'Transfer');
     });
 
 });
@@ -132,7 +153,7 @@ describe("Factory", function () {
             "protocolFeePercent": "50000000000000000",
             "previousOwnerFeePercent": "50000000000000000"
         }
-        const txn = await factory.createS2O(process.env.PUBLIC_KEY, addr.sToken, nftSettings, appSettings);
+        const txn = await factory.connect(signerOne).createS2O(await signerOne.getAddress(), addr.sToken, nftSettings, appSettings);
         const { events } = await txn.wait();
         const appEvent = events.find(x => x.event === "S2OSuperAppCreated");
         //console.log("cloneEvent: ", cloneEvent);
@@ -150,7 +171,7 @@ describe("Factory", function () {
 describe("NFT", function () {
 
     it("should mint an nft to the contract itself", async function() {
-        nft = new ethers.Contract(addr.nft, nftJSON.abi, signer);
+        nft = new ethers.Contract(addr.nft, nftJSON.abi, signerOne);
         const txn = await nft.mint();
         const { events } = await txn.wait();
         const Event = events.find(x => x.event === "Transfer");
@@ -164,12 +185,36 @@ describe("NFT", function () {
 
 describe("Streams and Super App Callbacks", function () {
 
+    it("should REVERT trying to stream to the Super app omitting userdata", async function() {
+        const flowRate = "1000000000000000000"; // 1 sToken per second
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("createFlow", [
+                    addr.sToken,
+                    addr.superApp,
+                    flowRate,
+                    "0x"
+                ]),
+                "0x"
+            );
+        } catch (e) {
+        
+        }
+        var flow = await cfa.getFlow(addr.sToken, process.env.PUBLIC_KEY, addr.superApp);
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.equal(0); // stream should fail because not userData
+    });
+
     it("should stream to the Super app", async function() {
         const flowRate = "1000000000000000000"; // 1 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
-        await host.callAgreement(
+        await host.connect(signerOne).callAgreement(
             addr.cfa,
             iface.encodeFunctionData("createFlow", [
                 addr.sToken,
@@ -179,14 +224,132 @@ describe("Streams and Super App Callbacks", function () {
             ]),
             userData
         );
-        var flow = await cfa.getFlow(addr.sToken, process.env.PUBLIC_KEY, addr.superApp);
+        var flow = await cfa.getFlow(addr.sToken, await signerOne.getAddress(), addr.superApp);
         console.log("flow: ", flow);
-        expect(1).to.equal(1);
+        expect(flow.flowRate).to.be.gt(0);
     });
 
     it("token should now be owner by streamer", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
-        expect(owner).to.equal(process.env.PUBLIC_KEY);
+        expect(owner).to.equal(await signerOne.getAddress());
+    });
+
+    it("should now be a stream from the Super app to feeRecipient", async function() {
+        var flow = await cfa.getFlow(addr.sToken, addr.superApp, addr.feeRecipient);
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it("should now be a stream from the Super app to beneficiary", async function() {
+        var flow = await cfa.getFlow(addr.sToken, addr.superApp, await signerOne.getAddress());
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it("should increase stream to the Super app", async function() {
+        const flowRate = "1000000000000000001"; // 1+ sToken per second
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        await host.connect(signerOne).callAgreement(
+            addr.cfa,
+            iface.encodeFunctionData("updateFlow", [
+                addr.sToken,
+                addr.superApp,
+                flowRate,
+                "0x"
+            ]),
+            userData
+        );
+        var flow = await cfa.getFlow(addr.sToken, await signerOne.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it("should revert due to stream increment too low", async function() {
+        const flowRate = "1000000000000000002"; // 1+ sToken per second
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerTwo).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("createFlow", [
+                    addr.sToken,
+                    addr.superApp,
+                    flowRate,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerTwo.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.equal(0); // stream should fail because increment too low
+    });
+
+    it("should stream to takeover an existing token with actove stream", async function() {
+        const flowRate = "2000000000000000000"; // 3 sToken per second
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerTwo).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("createFlow", [
+                    addr.sToken,
+                    addr.superApp,
+                    flowRate,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerTwo.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it("token should now be owned by the NEW streamer", async function() {
+        const owner = await nft.ownerOf(addr.tokenId);
+        expect(owner).to.equal(await signerTwo.getAddress());
+    });
+
+    it("should stream from signerThree to takeover an existing token with active stream", async function() {
+        const flowRate = "3000000000000000000"; // 3 sToken per second
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerThree).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("createFlow", [
+                    addr.sToken,
+                    addr.superApp,
+                    flowRate,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerThree.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it("token should now be owned by the NEW streamer", async function() {
+        const owner = await nft.ownerOf(addr.tokenId);
+        expect(owner).to.equal(await signerThree.getAddress());
+    });
+
+    it("should be a stream to previous owner of token which should be signerTwo", async function() {
+        var flow = await cfa.getFlow(addr.sToken, addr.superApp, await signerTwo.getAddress() );
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.be.gt(0);
     });
 
 });
