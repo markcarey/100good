@@ -290,36 +290,15 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         feeFlowRate += fee;
         console.log("feeFlowRate", uint256(uint96(feeFlowRate)));
         console.logInt(feeFlowRate);
-        //if (feeFlowRate == fee) {
-            //console.log("fee createFlowWithCtx");
-        //    newCtx = cfaV1.createFlowWithCtx(newCtx, feeRecipient, _acceptedToken, feeFlowRate);
-        //} else {
-            //console.log("fee updateFlowWithCtx");
-        //    newCtx = cfaV1.updateFlowWithCtx(newCtx, feeRecipient, _acceptedToken, feeFlowRate);
-        //}
         newCtx = cfaV1.flowWithCtx(newCtx, feeRecipient, _acceptedToken, feeFlowRate);
         if ( (tokenFlows[tokenId].previousOwner != address(0)) && (previousOwnerFee != int96(0)) ) {
             (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
             console.log("existingFlowRate to previous owner address", uint256(uint96(existingFlowRate)));
             console.log("previousOwnerFlowRate", uint256(uint96(existingFlowRate + previousOwnerFee)));
-            //if (existingFlowRate > 0) {
-                //console.log("previousOwner updateFlowWithCtx");
-            //    newCtx = cfaV1.updateFlowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
-            //} else {
-                //console.log("previousOwner createFlowWithCtx");
-            //    newCtx = cfaV1.createFlowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
-            //}
             newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
         }
         beneficiaryFlowRate += remainder;
         console.log("beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate)));
-        //if (beneficiaryFlowRate == remainder) {
-            //console.log("beneficiary createFlowWithCtx");
-        //    newCtx = cfaV1.createFlowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
-        //} else {
-            //console.log("beneficiary updateFlowWithCtx");
-        //    newCtx = cfaV1.updateFlowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
-        //}
         newCtx = cfaV1.flowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
         console.log("after beneficiary flow");
         if (streamType == StreamTypes.DELETE) {
@@ -327,9 +306,6 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         }
     }
 
-    function getNetFlow() public view returns (int96) {
-       return _cfa.getNetFlow(_acceptedToken, address(this));
-    }
     function _isSameToken(ISuperToken superToken) private view returns (bool) {
         return address(superToken) == address(_acceptedToken);
     }
