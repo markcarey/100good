@@ -1,0 +1,47 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "dapp",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/images/*.@(png)",
+        "function": "api"
+      },
+      {
+        "source": "/meta/*",
+        "function": "api"
+      },
+      {
+        "source": "/drip/*",
+        "function": "api"
+      },
+      {
+        "source": "/mint",
+        "function": "api"
+      }
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

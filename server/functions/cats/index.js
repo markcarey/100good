@@ -1,5 +1,8 @@
 var functions = require('firebase-functions');
 var firebase = require('firebase-admin');
+if (!firebase.apps.length) {
+    firebase.initializeApp();
+}
 var storage = firebase.storage();
 const bucket = storage.bucket("catsinhats");
 var db = firebase.firestore();
@@ -15,11 +18,11 @@ const moment = require('moment');
 
 var imageDataURI = require("image-data-uri");
 var textToImage = require("text-to-image");
-var text2png = require('text2png');
+//var text2png = require('text2png');
 var sigUtil = require("eth-sig-util");
 
 const { ethers } = require("ethers");
-const { nextTick } = require('async');
+//const { nextTick } = require('async');
 
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
@@ -85,6 +88,7 @@ function getConfig(network) {
             "streamer": new ethers.Contract(addr.streamer, streamerJSON.abi, provider),
         }
     }
+    return addr;
 }
 
 function getPromptAndMeta(id, config) {
@@ -172,7 +176,7 @@ api.get(['/images/:id.png', '/:network/images/:id.png'], async function (req, re
   var cache = 'public, max-age=3600, s-maxage=86400';
 
   // Step 1: Validate
-  var nft = config.contracts.nft; // nft contract
+  var nft = config.contracts.cat; // nft contract
   var minted = false;
   const exists = await nft.exists(id);
   if ( exists ) {
@@ -222,7 +226,7 @@ api.get(['/meta/:id', '/:network/meta/:id'], async function (req, res) {
   var cache = 'public, max-age=3600, s-maxage=86400';
 
   // Step 1: Validate
-  var nft = config.contracts.nft; // nft contract
+  var nft = config.contracts.cat; // nft contract
   var minted = false;
   const exists = await nft.exists(id);
   if ( exists ) {
@@ -253,5 +257,20 @@ api.get(['/meta/:id', '/:network/meta/:id'], async function (req, res) {
     }
   }
 }); // meta
+
+api.get("/drip/:address", async function (req, res) {
+    const to = req.params.address;
+    const config = getConfig();
+    const signer = new ethers.Wallet(process.env.PRIVATE_KEY, config.provider);
+    await config.contracts.streamer.connect(signer).drop(to, "1000000000000000000000000");
+    return res.json({"result": "ok"});
+}); // drip
+
+api.get("/mint", async function (req, res) {
+    const config = getConfig();
+    const signerOne = new ethers.Wallet(process.env.TR8_ONE_PRIV, config.provider);
+    await config.contracts.cat.connect(signerOne).mint();
+    return res.json({"result": "ok"});
+}); // mint
 
 module.exports.api = api;

@@ -3,6 +3,6 @@ const functions = require("firebase-functions");
 
 var cats = require(__base + 'cats');
 
-exports.api = functions.runWith({secrets: ["CATBOT_PRIV"]}).https.onRequest((req, res) => {
+exports.api = functions.https.onRequest((req, res) => {
     return cats.api(req, res);
 }); // api

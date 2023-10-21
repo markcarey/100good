@@ -29,7 +29,12 @@
     "firebase-functions": "^3.18.0",
     "jose": "^4.13.1",
     "node-fetch": "^2.6.1",
-    "openai": "^3.2.1"
+    "openai": "^3.2.1",
+    "cookie-parser": "^1.4.6",
+    "moment": "^2.18.1",
+    "text-to-image": "^3.0.1",
+    "eth-sig-util": "^3.0.1",
+    "image-data-uri": "^2.0.1"
   },
   "devDependencies": {
     "firebase-functions-test": "^0.2.0"
