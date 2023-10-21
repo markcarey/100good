@@ -42,7 +42,7 @@ module.exports = {
       ],
       forking: {
         url: API_URL_ZKEVMTESTNET,
-        blockNumber: 2985760,
+        blockNumber: 2993524,
         gasPrice: 1000000000 * 10,
       },
       loggingEnabled: true,
@@ -63,7 +63,7 @@ module.exports = {
     zkevm: {
       url: API_URL_ZKEVMTESTNET,
       accounts: [`0x${PRIVATE_KEY}`, `0x${TR8_ONE_PRIV}`],
-      gasPrice: 1000000000 * 10,
+      //gasPrice: 1000000000 * 10,
     },
   },
    etherscan: {

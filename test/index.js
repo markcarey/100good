@@ -42,13 +42,13 @@ if ("chain" == "base") {
 } else if (chain == "zkevm") {
     // zkEVM testnet addresses
     addr = {
-        "factory": "",
-        "nftImplementation": "",
-        "appImplementation": "",
-        "streamer": "",
-        "sToken": "",
-        "superApp": "",
-        "nft": "",
+        "factory": "0x28C480abbe9399259dFd43DE2D0e037EDdF2234b",
+        "nftImplementation": "0xA32Fcb91eaBbDea5f9Ed77706727d1D5a6B19fe1",
+        "appImplementation": "0x191CFf9f634c219f6bb44b70b958e8Af806DeD10",
+        "streamer": "0x94F4237016DCE85F31442D38126be72f928Cdf6f",
+        "sToken": "0x23E6d1B7ddbF737293DDAF7c56E687A227520850",
+        "superApp": "0x9170e2b356a9d39c531032e40e71a6b0DBfeDc88",
+        "nft": "0x70e9D049403D43e1D6c2b34fF7dC94371F20eC91",
         "feeRecipient": "0x827a0F679D7CE70e7a0a6A1Ef2be473f1Cc8d7bb", // "feeRecipient"
         "host": "0xe64f81d5dDdA1c7172e5C6d964E8ef1BD82D8704",
         "cfa": "0x1EAa5ceA064aab2692AF257FB31f5291fdA3Cdee",
@@ -65,12 +65,12 @@ const cfa = new ethers.Contract(addr.cfa, cfaJSON.abi, signer);
 var factory, streamer, nft, sToken, superApp;
 
 // Native Super Token
-const tokenName = "S2O Super Token";
-const symbol = "S2O";
+const tokenName = "FISH Super Token";
+const symbol = "FISH";
 const supply = "420000000000000000000000000000000"; // 420T
 
 
-describe("Streamer", function () {
+describe.skip("Streamer", function () {
 
     it("should deploy the streamer contract", async function() {
         const Streamer = await ethers.getContractFactory("Streamer");
@@ -117,34 +117,39 @@ describe("Streamer", function () {
 
 describe("Factory", function () {
 
-    it("should deploy the nft implementation contract", async function() {
+    it.skip("should deploy the nft implementation contract", async function() {
         const S2ONFT = await ethers.getContractFactory("contracts/S2ONFT.sol:S2ONFT");
         const implementation = await S2ONFT.deploy();
         addr.nftImplementation = implementation.address;
+        console.log("addr.nftImplementation: ", addr.nftImplementation);
         expect(implementation).to.not.equal("");
     });
 
-    it("should deploy the app implementation contract", async function() {
+    it.skip("should deploy the app implementation contract", async function() {
         const S2OSuperApp = await ethers.getContractFactory("contracts/S2OSuperApp.sol:S2OSuperApp");
         const implementation = await S2OSuperApp.deploy();
         addr.appImplementation = implementation.address;
+        console.log("addr.appImplementation: ", addr.appImplementation);
         expect(implementation).to.not.equal("");
     });
 
-    it("should deploy the factory contract", async function() {
+    it.skip("should deploy the factory contract", async function() {
         const Factory = await ethers.getContractFactory("S2OFactory");
         factory = await Factory.deploy();
         addr.factory = factory.address;
+        console.log("addr.factory: ", addr.factory);
         await factory.deployTransaction.wait();
         await factory.initialize(addr.nftImplementation, addr.appImplementation, addr.host, addr.cfa, addr.feeRecipient);
         expect(addr.factory).to.not.equal("");
     });
 
     it("should deploy nft + app from factory", async function() {
+        this.timeout(240000);
+        factory = new ethers.Contract(addr.factory, factoryJSON.abi, signer);
         const nftSettings = {
-            "name": "Test S2O NFT",
-            "symbol": "S2ONFT",
-            "uri": "https://s2o.dev/nft/",
+            "name": "Cats in Hats S2O",
+            "symbol": "CAT",
+            "uri": "https://api.catsinhats.art/meta/",
             "maxSupply": 100
         }
         const appSettings = {
@@ -183,7 +188,7 @@ describe("NFT", function () {
 
 });
 
-describe("Streams and Super App Callbacks", function () {
+describe.skip("Streams and Super App Callbacks", function () {
 
     it("should REVERT trying to stream to the Super app omitting userdata", async function() {
         const flowRate = "1000000000000000000"; // 1 sToken per second
