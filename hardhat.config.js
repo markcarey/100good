@@ -42,7 +42,7 @@ module.exports = {
       ],
       forking: {
         url: API_URL_ZKEVMTESTNET,
-        blockNumber: 2993524,
+        blockNumber: 2995001,
         gasPrice: 1000000000 * 10,
       },
       loggingEnabled: true,

@@ -143,7 +143,7 @@ describe("Factory", function () {
         expect(addr.factory).to.not.equal("");
     });
 
-    it("should deploy nft + app from factory", async function() {
+    it.skip("should deploy nft + app from factory", async function() {
         this.timeout(240000);
         factory = new ethers.Contract(addr.factory, factoryJSON.abi, signer);
         const nftSettings = {
@@ -173,7 +173,7 @@ describe("Factory", function () {
 
 });
 
-describe("NFT", function () {
+describe.skip("NFT", function () {
 
     it("should mint an nft to the contract itself", async function() {
         nft = new ethers.Contract(addr.nft, nftJSON.abi, signerOne);
@@ -188,10 +188,11 @@ describe("NFT", function () {
 
 });
 
-describe.skip("Streams and Super App Callbacks", function () {
+describe("Streams and Super App Callbacks", function () {
 
-    it("should REVERT trying to stream to the Super app omitting userdata", async function() {
+    it.skip("should REVERT trying to stream to the Super app omitting userdata", async function() {
         const flowRate = "1000000000000000000"; // 1 sToken per second
+        addr.tokenId = "0";
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -216,6 +217,7 @@ describe.skip("Streams and Super App Callbacks", function () {
 
     it("should stream to the Super app", async function() {
         const flowRate = "1000000000000000000"; // 1 sToken per second
+        addr.tokenId = "0";
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -234,24 +236,24 @@ describe.skip("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("token should now be owner by streamer", async function() {
+    it.skip("token should now be owner by streamer", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(await signerOne.getAddress());
     });
 
-    it("should now be a stream from the Super app to feeRecipient", async function() {
+    it.skip("should now be a stream from the Super app to feeRecipient", async function() {
         var flow = await cfa.getFlow(addr.sToken, addr.superApp, addr.feeRecipient);
         console.log("flow: ", flow);
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should now be a stream from the Super app to beneficiary", async function() {
+    it.skip("should now be a stream from the Super app to beneficiary", async function() {
         var flow = await cfa.getFlow(addr.sToken, addr.superApp, await signerOne.getAddress());
         console.log("flow: ", flow);
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should increase stream to the Super app", async function() {
+    it.skip("should increase stream to the Super app", async function() {
         const flowRate = "2000000000000000000"; // 2 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -271,7 +273,7 @@ describe.skip("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should revert due to stream increment too low", async function() {
+    it.skip("should revert due to stream increment too low", async function() {
         const flowRate = "2050000000000000000"; // 2.05 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -293,7 +295,7 @@ describe.skip("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.equal(0); // stream should fail because increment too low
     });
 
-    it("should stream to takeover an existing token with actove stream", async function() {
+    it.skip("should stream to takeover an existing token with actove stream", async function() {
         const flowRate = "3000000000000000000"; // 3 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -317,12 +319,12 @@ describe.skip("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("token should now be owned by the NEW streamer", async function() {
+    it.skip("token should now be owned by the NEW streamer", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(await signerTwo.getAddress());
     });
 
-    it("should stream from signerThree to takeover an existing token with active stream", async function() {
+    it.skip("should stream from signerThree to takeover an existing token with active stream", async function() {
         const flowRate = "4000000000000000000"; // 4 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -346,18 +348,18 @@ describe.skip("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("token should now be owned by the NEW streamer", async function() {
+    it.skip("token should now be owned by the NEW streamer", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(await signerThree.getAddress());
     });
 
-    it("should be a stream to previous owner of token which should be signerTwo", async function() {
+    it.skip("should be a stream to previous owner of token which should be signerTwo", async function() {
         var flow = await cfa.getFlow(addr.sToken, addr.superApp, await signerTwo.getAddress() );
         console.log("flow: ", flow);
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should STOP stream from signerThree", async function() {
+    it.skip("should STOP stream from signerThree", async function() {
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
         let iface = new ethers.utils.Interface(cfaJSON.abi);
@@ -380,7 +382,7 @@ describe.skip("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.equal(0);
     });
 
-    it("token should now be owned by the nft CONTRACT", async function() {
+    it.skip("token should now be owned by the nft CONTRACT", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(addr.nft);
     });

@@ -208,7 +208,7 @@ api.get(['/images/:id.png', '/:network/images/:id.png'], async function (req, re
   }
 
   const img = file[0];
-  //res.set('Cache-Control', cache);
+  res.set('Cache-Control', cache);
   res.writeHead(200, {
     'Content-Type': 'image/png',
     'Content-Length': img.length
@@ -250,7 +250,7 @@ api.get(['/meta/:id', '/:network/meta/:id'], async function (req, res) {
     await generate(id, config);
     doc = await metaRef.get();
     if ( doc.exists ) {
-      //res.set('Cache-Control', cache);
+      res.set('Cache-Control', cache);
       return res.json(doc.data());
     } else {
       return res.json({"error": "metadata not found"});
@@ -269,8 +269,12 @@ api.get("/drip/:address", async function (req, res) {
 api.get("/mint", async function (req, res) {
     const config = getConfig();
     const signerOne = new ethers.Wallet(process.env.TR8_ONE_PRIV, config.provider);
-    await config.contracts.cat.connect(signerOne).mint();
-    return res.json({"result": "ok"});
+    const txn = await config.contracts.cat.connect(signerOne).mint();
+    const { events } = await txn.wait();
+    const Event = events.find(x => x.event === "Transfer");
+    const tokenId = Event.args[2];
+    console.log("tokenId: ", tokenId);
+    return res.json({"result": "ok", "tokenId": parseInt(tokenId)});
 }); // mint
 
 module.exports.api = api;
