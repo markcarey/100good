@@ -176,6 +176,9 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         } else {
             // replacement stream
             require(inFlowRate >= (tokenFlows[tokenId].flowRate + settings.minIncrement), "SuperApp: flowRate below increment");
+            // The following line has been commented out because it was cauing a APP_RULE_NO_CRITICAL_RECEIVER_ACCOUNT revert,
+            // despite the fact that it would result in a netFlow == zero after the callback completes. For clarity,
+            // the INCOMING flow being deleted in NOT the flow that triggered this onCreated callback
             //newCtx = cfaV1.deleteFlowWithCtx(newCtx, tokenFlows[tokenId].owner, address(this), _acceptedToken);
             if(tokenFlows[tokenId].previousOwner != address(0)) {
                 (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
