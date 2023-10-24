@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >= 0.8.0;
 
+// TODO: remove console.log later
+import "hardhat/console.sol";
+
 import {
     ISuperfluid,
     ISuperToken,
@@ -167,7 +170,8 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         // idea: mint if tokenId doesn't exist?
         require(nftContract.exists(tokenId), "SuperApp: token does not exist");
         (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
-        //console.log("inFlowRate", uint256(uint96(inFlowRate)));
+        console.log("inFlowRate", uint256(uint96(inFlowRate)));
+        bool deletePreviousFlow = false;
         if (tokenFlows[tokenId].owner == address(0)) {
             // new stream
             //console.log("settings.minFlowRate", uint256(uint96(settings.minFlowRate)));
@@ -180,6 +184,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
             // despite the fact that it would result in a netFlow == zero after the callback completes. For clarity,
             // the INCOMING flow being deleted in NOT the flow that triggered this onCreated callback
             //newCtx = cfaV1.deleteFlowWithCtx(newCtx, tokenFlows[tokenId].owner, address(this), _acceptedToken);
+            deletePreviousFlow = true;
             if(tokenFlows[tokenId].previousOwner != address(0)) {
                 (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
                 //console.log("existingFlowRate to previous owner address", uint256(uint96(existingFlowRate)));
@@ -196,7 +201,14 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         //console.log("before onStreamChange");
         nftContract.onStreamChange(tokenFlows[tokenId].previousOwner == address(0) ? address(nftContract) : tokenFlows[tokenId].previousOwner, streamer, tokenId);
         //console.log("after onStreamChange");
-        return _updateOutflows(newCtx, tokenId, flowRateDelta, tokenFlows[tokenId].previousOwner == address(0) ? StreamTypes.NEW : StreamTypes.REPLACE);
+        newCtx = _updateOutflows(newCtx, tokenId, flowRateDelta, tokenFlows[tokenId].previousOwner == address(0) ? StreamTypes.NEW : StreamTypes.REPLACE);
+        if (deletePreviousFlow) {
+            newCtx = cfaV1.deleteFlowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, address(this), _acceptedToken);
+        }
+        ISuperfluid.Context memory sfContext = _host.decodeCtx(newCtx);
+        uint256 remainingAppCredit = sfContext.appCreditGranted - uint256(sfContext.appCreditUsed);
+        int96 maxRemainingFr = _cfa.getMaximumFlowRateFromDeposit(_acceptedToken, remainingAppCredit);
+        console.log("AFTER DELETE: max remaining flow rate", uint256(uint96(maxRemainingFr)));
     }
 
     function afterAgreementUpdated(
@@ -295,6 +307,10 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         if (streamType == StreamTypes.DELETE) {
             delete tokenFlows[tokenId];
         }
+        ISuperfluid.Context memory sfContext = _host.decodeCtx(newCtx);
+        uint256 remainingAppCredit = sfContext.appCreditGranted - uint256(sfContext.appCreditUsed);
+        int96 maxRemainingFr = _cfa.getMaximumFlowRateFromDeposit(_acceptedToken, remainingAppCredit);
+        console.log("BEFORE DELETE: max remaining flow rate", uint256(uint96(maxRemainingFr)));
     }
 
     function _isSameToken(ISuperToken superToken) private view returns (bool) {

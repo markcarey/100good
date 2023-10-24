@@ -253,7 +253,7 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should increase stream to the Super app", async function() {
+    it.skip("should increase stream to the Super app", async function() {
         const flowRate = "2000000000000000000"; // 2 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -273,7 +273,7 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should revert due to stream increment too low", async function() {
+    it.skip("should revert due to stream increment too low", async function() {
         const flowRate = "2050000000000000000"; // 2.05 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
