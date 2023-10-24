@@ -300,8 +300,12 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
             //console.log("previousOwnerFlowRate", uint256(uint96(existingFlowRate + previousOwnerFee)));
             newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
         }
+        console.log("beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate + remainder)));
+        //if (tokenFlows[tokenId].previousOwner != address(0)) {
+        //    remainder -= int96(100000000000000000);
+        //}
         beneficiaryFlowRate += remainder;
-        //console.log("beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate)));
+        console.log("adjusted beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate)));
         newCtx = cfaV1.flowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
         //console.log("after beneficiary flow");
         if (streamType == StreamTypes.DELETE) {

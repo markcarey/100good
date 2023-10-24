@@ -190,6 +190,12 @@ describe("NFT", function () {
 
 describe("Streams and Super App Callbacks", function () {
 
+    it("should drop 1e12 Super Tokens to the super app", async function() {
+        var to = addr.superApp;
+        await expect(streamer.drop(to, "1000000000000"))
+            .to.emit(sToken, 'Transfer');
+    });
+
     it("should REVERT trying to stream to the Super app omitting userdata", async function() {
         const flowRate = "1000000000000000000"; // 1 sToken per second
         addr.tokenId = "0";
