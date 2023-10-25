@@ -203,12 +203,13 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         //console.log("after onStreamChange");
         newCtx = _updateOutflows(newCtx, tokenId, flowRateDelta, tokenFlows[tokenId].previousOwner == address(0) ? StreamTypes.NEW : StreamTypes.REPLACE);
         if (deletePreviousFlow) {
+            console.log("deleting previous flow from", tokenFlows[tokenId].previousOwner);
             newCtx = cfaV1.deleteFlowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, address(this), _acceptedToken);
         }
         ISuperfluid.Context memory sfContext = _host.decodeCtx(newCtx);
         uint256 remainingAppCredit = sfContext.appCreditGranted - uint256(sfContext.appCreditUsed);
         int96 maxRemainingFr = _cfa.getMaximumFlowRateFromDeposit(_acceptedToken, remainingAppCredit);
-        console.log("AFTER DELETE: max remaining flow rate", uint256(uint96(maxRemainingFr)));
+        console.log("AFTER DELETE: credit granted, credit used", sfContext.appCreditGranted, uint256(sfContext.appCreditUsed));
     }
 
     function afterAgreementUpdated(
@@ -290,6 +291,10 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
             previousOwnerFee = -previousOwnerFee;
             remainder = -remainder;
         }
+        if (feeFlowRate > 0) {
+            // delete it first, as per Didi's suggestion
+            newCtx = cfaV1.flowWithCtx(newCtx, feeRecipient, _acceptedToken, 0);
+        }
         feeFlowRate += fee;
         //console.log("feeFlowRate", uint256(uint96(feeFlowRate)));
         //console.logInt(feeFlowRate);
@@ -298,12 +303,20 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
             (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), tokenFlows[tokenId].previousOwner);
             //console.log("existingFlowRate to previous owner address", uint256(uint96(existingFlowRate)));
             //console.log("previousOwnerFlowRate", uint256(uint96(existingFlowRate + previousOwnerFee)));
+            if (existingFlowRate > 0) {
+                // delete it first, as per Didi's suggestion
+                newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, 0);
+            }
             newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
         }
         console.log("beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate + remainder)));
         //if (tokenFlows[tokenId].previousOwner != address(0)) {
         //    remainder -= int96(100000000000000000);
         //}
+        if (beneficiaryFlowRate > 0) {
+            // delete it first, as per Didi's suggestion
+            newCtx = cfaV1.flowWithCtx(newCtx, beneficiary, _acceptedToken, 0);
+        }
         beneficiaryFlowRate += remainder;
         console.log("adjusted beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate)));
         newCtx = cfaV1.flowWithCtx(newCtx, beneficiary, _acceptedToken, beneficiaryFlowRate);
@@ -314,7 +327,9 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         ISuperfluid.Context memory sfContext = _host.decodeCtx(newCtx);
         uint256 remainingAppCredit = sfContext.appCreditGranted - uint256(sfContext.appCreditUsed);
         int96 maxRemainingFr = _cfa.getMaximumFlowRateFromDeposit(_acceptedToken, remainingAppCredit);
-        console.log("BEFORE DELETE: max remaining flow rate", uint256(uint96(maxRemainingFr)));
+        //console.log("BEFORE DELETE: max remaining flow rate", uint256(uint96(maxRemainingFr)));
+        console.logInt(maxRemainingFr);
+        console.log("BEFORE DELETE: credit granted, credit used", sfContext.appCreditGranted, uint256(sfContext.appCreditUsed));
     }
 
     function _isSameToken(ISuperToken superToken) private view returns (bool) {

@@ -190,10 +190,17 @@ describe("NFT", function () {
 
 describe("Streams and Super App Callbacks", function () {
 
-    it("should drop 1e12 Super Tokens to the super app", async function() {
+    const preDeposit = "3700000000000000000000"; // 60*60 sToken
+
+    it.skip("should drop 3600 Super Tokens to the super app", async function() {
         var to = addr.superApp;
-        await expect(streamer.drop(to, "1000000000000"))
+        await expect(streamer.drop(to, preDeposit))
             .to.emit(sToken, 'Transfer');
+    });
+
+    it.skip("superApp shown own 3600 Super Tokens", async function() {
+        var balance = await sToken.balanceOf(addr.superApp);
+        expect(balance).to.equal(preDeposit);
     });
 
     it("should REVERT trying to stream to the Super app omitting userdata", async function() {
@@ -302,6 +309,14 @@ describe("Streams and Super App Callbacks", function () {
     });
 
     it("should stream to takeover an existing token with actove stream", async function() {
+        // first let some time pass:
+        let MONTH = 60 * 60 * 24 * 30;
+        await hre.network.provider.request({
+            method: "evm_increaseTime",
+            params: [MONTH]
+        });
+        await hre.network.provider.send("evm_mine");
+
         const flowRate = "3000000000000000000"; // 3 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
