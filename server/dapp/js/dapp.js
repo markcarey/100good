@@ -76,6 +76,7 @@ for (let i = 0; i < allChains.length; i++) {
         addr[thisChain].contracts.cat = new ethers.Contract(addr[thisChain].nftAddress, nftABI, chainProvider);
         host = new ethers.Contract(addr[thisChain].host, hostJSON.abi, chainProvider);
         addr[thisChain].contracts.cfa = new ethers.Contract(addr[thisChain].cfa, cfaJSON.abi, chainProvider);
+        addr[thisChain].contracts.fish = new ethers.Contract(addr[thisChain].sToken, sTokenJSON.abi, chainProvider);
     }
 }
 
@@ -90,7 +91,10 @@ function setupChain() {
     const prov = {"url": "https://"+rpcURL};
     provider = new ethers.providers.JsonRpcProvider(prov);
     if (window.ethereum) {
+        console.log("window.ethereum true")
         provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+    } else {
+        console.log("window.ethereum false");
     }
     //var wssProvider = new ethers.providers.WebSocketProvider(
     //    "wss://" + rpcURL
@@ -185,13 +189,16 @@ async function connect(){
         ethersSigner = provider.getSigner();
         accounts[0] = await ethersSigner.getAddress();
         console.log(accounts);
-        const res = await fetch(`/drip/${accounts[0]}`, { 
-            method: 'GET', 
-            headers: {
-              "Content-Type": "application/json"
-            }
-        }); // fetch
-        //var result = await res.json();
+        const balance = await addr[thisChain].contracts.fish.balanceOf(accounts[0]);
+        if ( parseInt(balance) == 0 ) {
+            const res = await fetch(`/drip/${accounts[0]}`, { 
+                method: 'GET', 
+                headers: {
+                "Content-Type": "application/json"
+                }
+            }); // fetch
+            //var result = await res.json();
+        }
         const userChainHex = await ethereum.request({ method: 'eth_chainId' });
         const userChainInt = parseInt(userChainHex, 16);
         console.log("userChainInt", userChainInt);

@@ -340,6 +340,29 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
+    it("should STOP stream from signerOne", async function() {
+        // half an hour
+        await hre.network.provider.request({
+            method: "evm_increaseTime",
+            params: [60*30*4]
+        });
+        await hre.network.provider.send("evm_mine");
+
+        const superApp = new ethers.Contract(addr.superApp, appJSON.abi, signer);
+        const senderBalBefore = await sToken.balanceOf(await signer.getAddress());
+        const steamerBalBefore = await sToken.balanceOf(await signerOne.getAddress());
+        await superApp.stopStream(await signerOne.getAddress());
+        const senderBalAfter = await sToken.balanceOf(await signer.getAddress());
+        const steamerBalAfter = await sToken.balanceOf(await signerOne.getAddress());
+        console.log("senderBalBefore: ", senderBalBefore.toString());
+        console.log("senderBalAfter: ", senderBalAfter.toString());
+        console.log("steamerBalBefore: ", steamerBalBefore.toString());
+        console.log("steamerBalAfter: ", steamerBalAfter.toString());
+        var flow = await cfa.getFlow(addr.sToken, await signerOne.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.equal(0);
+    });
+
     it("token should now be owned by the NEW streamer", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(await signerTwo.getAddress());
