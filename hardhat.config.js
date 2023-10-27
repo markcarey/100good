@@ -3,7 +3,7 @@ const dot = require('dotenv').config();
 
 require("@nomiclabs/hardhat-etherscan");
 require("@nomicfoundation/hardhat-chai-matchers");
-const { API_URL_BASE, API_URL_BASEGOERLI, PRIVATE_KEY, BASESCAN_API_KEY, API_URL_ZKEVMTESTNET, TR8_ONE_PRIV, TR8_TWO_PRIV, TR8_THREE_PRIV } = process.env;
+const { API_URL_BASE, API_URL_BASEGOERLI, API_URL_CELO, PRIVATE_KEY, BASESCAN_API_KEY, API_URL_ZKEVMTESTNET, TR8_ONE_PRIV, TR8_TWO_PRIV, TR8_THREE_PRIV } = process.env;
 
 module.exports = {
   solidity: {
@@ -31,7 +31,7 @@ module.exports = {
       },
     },
   },
-  defaultNetwork: "zkevm",
+  defaultNetwork: "celo",
   networks: {
     hardhat: {
       accounts: [
@@ -41,8 +41,8 @@ module.exports = {
         { privateKey: `0x${TR8_THREE_PRIV}`, balance: "10000000000000000000000"}
       ],
       forking: {
-        url: API_URL_ZKEVMTESTNET,
-        blockNumber: 2995001,
+        url: API_URL_CELO,
+        blockNumber: 22150832,
         gasPrice: 1000000000 * 10,
       },
       loggingEnabled: true,
@@ -62,6 +62,11 @@ module.exports = {
     },
     zkevm: {
       url: API_URL_ZKEVMTESTNET,
+      accounts: [`0x${PRIVATE_KEY}`, `0x${TR8_ONE_PRIV}`],
+      //gasPrice: 1000000000 * 10,
+    },
+    celo: {
+      url: API_URL_CELO,
       accounts: [`0x${PRIVATE_KEY}`, `0x${TR8_ONE_PRIV}`],
       //gasPrice: 1000000000 * 10,
     },

@@ -19,7 +19,7 @@ const sTokenJSON = require("./abis/sToken.json");
 const erc20JSON = require("./abis/erc20.json");
 
 if (chain == "localhost") {
-    chain = "zkevm";
+    chain = "celo";
 }
 
 var addr = {};
@@ -53,6 +53,21 @@ if ("chain" == "base") {
         "host": "0xe64f81d5dDdA1c7172e5C6d964E8ef1BD82D8704",
         "cfa": "0x1EAa5ceA064aab2692AF257FB31f5291fdA3Cdee",
         "stf": "0x0F3B163623F05b2BfF42956f7C7bd31456bd83a2",
+    };
+} else if (chain == "celo") {
+    // celo addresses
+    addr = {
+        "factory": "",
+        "nftImplementation": "",
+        "appImplementation": "",
+        "streamer": "",
+        "sToken": "",
+        "superApp": "",
+        "nft": "",
+        "feeRecipient": "0x827a0F679D7CE70e7a0a6A1Ef2be473f1Cc8d7bb", // "feeRecipient"
+        "host": "0xA4Ff07cF81C02CFD356184879D953970cA957585",
+        "cfa": "0x9d369e78e1a682cE0F8d9aD849BeA4FE1c3bD3Ad",
+        "stf": "0x36be86dEe6BC726Ed0Cbd170ccD2F21760BC73D9",
     };
 }
 
