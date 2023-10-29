@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import {ERC2771ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-//import '@openzeppelin/contracts/utils/Strings.sol';
+import '@openzeppelin/contracts/utils/Strings.sol';
 
 contract S2ONFT is Initializable, ERC721Upgradeable, IERC721Receiver, AccessControlUpgradeable, OwnableUpgradeable, ERC2771ContextUpgradeable {
     using CountersUpgradeable for CountersUpgradeable.Counter;
@@ -43,7 +43,7 @@ contract S2ONFT is Initializable, ERC721Upgradeable, IERC721Receiver, AccessCont
     }
 
     function _baseURI() internal view override returns (string memory) {
-        return baseURI;
+        return string(abi.encodePacked(baseURI, Strings.toHexString(uint160(address(this)), 20), '/'));
     }
 
     function exists(uint256 tokenId) external view returns (bool) {
