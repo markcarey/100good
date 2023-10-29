@@ -58,6 +58,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
 
     struct tokenFlow {
         int96 flowRate;
+        int96 previousFlowRate;
         uint256 lastUpdated;
         address owner;
         address previousOwner;
@@ -219,6 +220,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         }
         int96 flowRateDelta = inFlowRate - tokenFlows[tokenId].flowRate;
         tokenFlows[tokenId].owner = streamer;
+        tokenFlows[tokenId].previousFlowRate = tokenFlows[tokenId].flowRate;
         tokenFlows[tokenId].flowRate = inFlowRate;
         tokenFlows[tokenId].lastUpdated = block.timestamp;
         tokenIds[streamer] = tokenId;
@@ -266,7 +268,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
     function afterAgreementTerminated(
         ISuperToken _superToken,
         address _agreementClass,
-        bytes32 ,//_agreementId,
+        bytes32 _agreementId,
         bytes calldata _agreementData,
         bytes calldata ,//_cbdata,
         bytes calldata _ctx
@@ -286,8 +288,12 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         }
         uint256 tokenId = tokenIds[streamer];
         if (nftContract.ownerOf(tokenId) != streamer) {
+            // @dev the streamer no longer owns the token, but the incoming stream is still active, so assume it is beeing offset by an outgoing stream
             //console.log("nftContract.ownerOf(tokenId) != streamer");
-            return _ctx;
+            (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
+            (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, address(this), streamer);
+            newCtx = cfaV1.flowWithCtx(newCtx, streamer, _acceptedToken, existingFlowRate - inFlowRate > 0 ? existingFlowRate - inFlowRate : int96(0));
+            return newCtx;
         }
         nftContract.onStreamChange(streamer, address(nftContract), tokenId);
         //console.log("new owner of token", nftContract.ownerOf(tokenId));
@@ -339,6 +345,13 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
                 // delete it first, as per Didi's suggestion
             //    newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, 0);
             //}
+            if (streamType == StreamTypes.REPLACE) {
+                // @dev since deleting previous incoming stream reverts, stream it back to previous owner, plus the fee
+                newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee + tokenFlows[tokenId].previousFlowRate);
+            } else {
+                // UPDATE or DELETE
+                newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate - previousOwnerFee);
+            }
             newCtx = cfaV1.flowWithCtx(newCtx, tokenFlows[tokenId].previousOwner, _acceptedToken, existingFlowRate + previousOwnerFee);
         }
         //console.log("beneficiaryFlowRate", uint256(uint96(beneficiaryFlowRate + remainder)));

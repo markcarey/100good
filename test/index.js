@@ -323,7 +323,7 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.equal(0); // stream should fail because increment too low
     });
 
-    it("should stream to takeover an existing token with actove stream", async function() {
+    it("should stream to takeover an existing token with active stream", async function() {
         // first let some time pass:
         let MONTH = 60 * 60 * 24 * 30;
         await hre.network.provider.request({
@@ -355,7 +355,7 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should STOP stream from signerOne", async function() {
+    it.skip("should STOP stream from signerOne", async function() {
         // half an hour
         await hre.network.provider.request({
             method: "evm_increaseTime",
@@ -444,6 +444,52 @@ describe("Streams and Super App Callbacks", function () {
     it("token should now be owned by the nft CONTRACT", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(addr.nft);
+    });
+
+    it("should STOP stream from signerOne who no longer owns token", async function() {
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerOne).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("deleteFlow", [
+                    addr.sToken,
+                    await signerOne.getAddress(),
+                    addr.superApp,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerOne.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.equal(0);
+    });
+
+    it("should STOP stream from signerTwo who no longer owns token", async function() {
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerTwo).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("deleteFlow", [
+                    addr.sToken,
+                    await signerTwo.getAddress(),
+                    addr.superApp,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerTwo.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.equal(0);
     });
 
 });

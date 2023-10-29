@@ -42,7 +42,7 @@ module.exports = {
       ],
       forking: {
         url: API_URL_CELO,
-        blockNumber: 22150832,
+        blockNumber: 22150815,
         gasPrice: 1000000000 * 10,
       },
       loggingEnabled: true,
