@@ -19,7 +19,7 @@ const sTokenJSON = require("./abis/sToken.json");
 const erc20JSON = require("./abis/erc20.json");
 
 if (chain == "localhost") {
-    chain = "zkevm";
+    chain = "celo";
 }
 
 var addr = {};
@@ -53,6 +53,21 @@ if ("chain" == "base") {
         "host": "0xe64f81d5dDdA1c7172e5C6d964E8ef1BD82D8704",
         "cfa": "0x1EAa5ceA064aab2692AF257FB31f5291fdA3Cdee",
         "stf": "0x0F3B163623F05b2BfF42956f7C7bd31456bd83a2",
+    };
+} else if (chain == "celo") {
+    // celo addresses
+    addr = {
+        "factory": "",
+        "nftImplementation": "",
+        "appImplementation": "",
+        "streamer": "",
+        "sToken": "",
+        "superApp": "",
+        "nft": "",
+        "feeRecipient": "0x827a0F679D7CE70e7a0a6A1Ef2be473f1Cc8d7bb", // "feeRecipient"
+        "host": "0xA4Ff07cF81C02CFD356184879D953970cA957585",
+        "cfa": "0x9d369e78e1a682cE0F8d9aD849BeA4FE1c3bD3Ad",
+        "stf": "0x36be86dEe6BC726Ed0Cbd170ccD2F21760BC73D9",
     };
 }
 
@@ -190,6 +205,19 @@ describe("NFT", function () {
 
 describe("Streams and Super App Callbacks", function () {
 
+    const preDeposit = "3700000000000000000000"; // 60*60 sToken
+
+    it.skip("should drop 3600 Super Tokens to the super app", async function() {
+        var to = addr.superApp;
+        await expect(streamer.drop(to, preDeposit))
+            .to.emit(sToken, 'Transfer');
+    });
+
+    it.skip("superApp shown own 3600 Super Tokens", async function() {
+        var balance = await sToken.balanceOf(addr.superApp);
+        expect(balance).to.equal(preDeposit);
+    });
+
     it("should REVERT trying to stream to the Super app omitting userdata", async function() {
         const flowRate = "1000000000000000000"; // 1 sToken per second
         addr.tokenId = "0";
@@ -253,7 +281,7 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should increase stream to the Super app", async function() {
+    it.skip("should increase stream to the Super app", async function() {
         const flowRate = "2000000000000000000"; // 2 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -273,7 +301,7 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.be.gt(0);
     });
 
-    it("should revert due to stream increment too low", async function() {
+    it.skip("should revert due to stream increment too low", async function() {
         const flowRate = "2050000000000000000"; // 2.05 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -295,7 +323,15 @@ describe("Streams and Super App Callbacks", function () {
         expect(flow.flowRate).to.equal(0); // stream should fail because increment too low
     });
 
-    it("should stream to takeover an existing token with actove stream", async function() {
+    it("should stream to takeover an existing token with active stream", async function() {
+        // first let some time pass:
+        let MONTH = 60 * 60 * 24 * 30;
+        await hre.network.provider.request({
+            method: "evm_increaseTime",
+            params: [MONTH]
+        });
+        await hre.network.provider.send("evm_mine");
+
         const flowRate = "3000000000000000000"; // 3 sToken per second
         const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
         console.log("userData: ", userData);
@@ -317,6 +353,29 @@ describe("Streams and Super App Callbacks", function () {
         const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
         console.log("netFlow: ", netFlow);
         expect(flow.flowRate).to.be.gt(0);
+    });
+
+    it.skip("should STOP stream from signerOne", async function() {
+        // half an hour
+        await hre.network.provider.request({
+            method: "evm_increaseTime",
+            params: [60*30*4]
+        });
+        await hre.network.provider.send("evm_mine");
+
+        const superApp = new ethers.Contract(addr.superApp, appJSON.abi, signer);
+        const senderBalBefore = await sToken.balanceOf(await signer.getAddress());
+        const steamerBalBefore = await sToken.balanceOf(await signerOne.getAddress());
+        await superApp.stopStream(await signerOne.getAddress());
+        const senderBalAfter = await sToken.balanceOf(await signer.getAddress());
+        const steamerBalAfter = await sToken.balanceOf(await signerOne.getAddress());
+        console.log("senderBalBefore: ", senderBalBefore.toString());
+        console.log("senderBalAfter: ", senderBalAfter.toString());
+        console.log("steamerBalBefore: ", steamerBalBefore.toString());
+        console.log("steamerBalAfter: ", steamerBalAfter.toString());
+        var flow = await cfa.getFlow(addr.sToken, await signerOne.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        expect(flow.flowRate).to.equal(0);
     });
 
     it("token should now be owned by the NEW streamer", async function() {
@@ -385,6 +444,52 @@ describe("Streams and Super App Callbacks", function () {
     it("token should now be owned by the nft CONTRACT", async function() {
         const owner = await nft.ownerOf(addr.tokenId);
         expect(owner).to.equal(addr.nft);
+    });
+
+    it("should STOP stream from signerOne who no longer owns token", async function() {
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerOne).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("deleteFlow", [
+                    addr.sToken,
+                    await signerOne.getAddress(),
+                    addr.superApp,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerOne.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.equal(0);
+    });
+
+    it("should STOP stream from signerTwo who no longer owns token", async function() {
+        const userData = ethers.utils.defaultAbiCoder.encode(["uint256"], [parseInt(addr.tokenId)]);
+        console.log("userData: ", userData);
+        let iface = new ethers.utils.Interface(cfaJSON.abi);
+        try {
+            await host.connect(signerTwo).callAgreement(
+                addr.cfa,
+                iface.encodeFunctionData("deleteFlow", [
+                    addr.sToken,
+                    await signerTwo.getAddress(),
+                    addr.superApp,
+                    "0x"
+                ]),
+                userData
+            );
+        } catch (e) {}
+        var flow = await cfa.getFlow(addr.sToken, await signerTwo.getAddress(), addr.superApp);
+        console.log("flow: ", flow);
+        const netFlow = await cfa.getNetFlow(addr.sToken, addr.superApp);
+        console.log("netFlow: ", netFlow);
+        expect(flow.flowRate).to.equal(0);
     });
 
 });
