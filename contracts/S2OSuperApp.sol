@@ -173,7 +173,7 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
         require(nftContract.exists(tokenId), "SuperApp: token does not exist");
         (,int96 inFlowRate,,) = _cfa.getFlowByID(_acceptedToken, _agreementId);
         //console.log("inFlowRate", uint256(uint96(inFlowRate)));
-        bool deletePreviousFlow = false;
+        //bool deletePreviousFlow = false;
         if (tokenFlows[tokenId].owner == address(0)) {
             // new stream
             //console.log("settings.minFlowRate", uint256(uint96(settings.minFlowRate)));
