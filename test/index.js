@@ -22,6 +22,28 @@ if (chain == "localhost") {
     chain = "celo";
 }
 
+var mnid = require('mnid');
+var mnidAddr = mnid.encode( {
+    "network": "0xa4ec",
+    "address": "0xb20DBcd49AE5BAd06E350De88b30639E36e753B9" // superApp Deployer
+});
+const params = {
+    m: mnidAddr,
+    a: '10',
+    r: 'S2O',
+    cat: 3,
+    ven: {
+      cbu: 'https://api.catsinhats.art/api/gdcb/',
+      ind: '1234-gdcb',
+      web: 'https://catsinhats.art/',
+      ven: 'S2O ven',
+      d:'just testing',
+    }
+};
+const gdCode = encodeURIComponent(btoa(JSON.stringify(params)));
+console.log("payment link: ", "https://wallet.gooddollar.org/?code=" + gdCode);
+return;
+
 var addr = {};
 
 if ("chain" == "base") {
