@@ -133,29 +133,6 @@ contract S2OSuperApp is Initializable, IERC777RecipientUpgradeable, SuperAppBase
 
     }
 
-    function stopStream(address streamer) external {
-        uint256 tokenId = tokenIds[streamer];
-        require(tokenFlows[tokenId].owner != streamer, "SuperApp: streamer still owns token");
-        console.log("netFlowRate:");
-        console.logInt(cfaV1.cfa.getNetFlow(_acceptedToken, address(this)));
-        (,int96 existingFlowRate,,) = cfaV1.cfa.getFlow(_acceptedToken, streamer, address(this));
-        require(existingFlowRate > 0, "SuperApp: streamer has no flow to contract");
-        console.log("existingFlowRate", uint256(uint96(existingFlowRate)));
-        cfaV1.deleteFlow(streamer, address(this), _acceptedToken);
-        // @dev calculate fee
-        console.log("seconds since last update", block.timestamp - tokenFlows[tokenId].lastUpdated);
-        uint256 fee = (block.timestamp - tokenFlows[tokenId].lastUpdated) * uint256(uint96(tokenFlows[tokenId].flowRate)) * uint256(uint96(settings.protocolFeePercent)) / 1 ether;
-        console.log("fee", fee);
-        console.log("contract balance before", _acceptedToken.balanceOf(address(this)));
-        //console.log("contract realtimeBalance before", _acceptedToken.realtimeBalanceOf(address(this)));
-        _acceptedToken.transfer(_msgSender(), fee);
-        console.log("contract balance after fee", _acceptedToken.balanceOf(address(this)));
-        //console.log("contract realtimeBalance after", _acceptedToken.realtimeBalanceOf(address(this)));
-        console.log("remainder", ((block.timestamp - tokenFlows[tokenId].lastUpdated) * uint256(uint96(tokenFlows[tokenId].flowRate))) - fee);
-        _acceptedToken.transfer(streamer, ((block.timestamp - tokenFlows[tokenId].lastUpdated) * uint256(uint96(tokenFlows[tokenId].flowRate))) - fee);
-        delete tokenIds[streamer];
-    }
-
     function acceptedToken() external view returns (address) {
         return address(_acceptedToken);
     }
