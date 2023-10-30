@@ -3,7 +3,8 @@ const dot = require('dotenv').config();
 
 require("@nomiclabs/hardhat-etherscan");
 require("@nomicfoundation/hardhat-chai-matchers");
-const { API_URL_BASE, API_URL_BASEGOERLI, API_URL_CELO, PRIVATE_KEY, BASESCAN_API_KEY, API_URL_ZKEVMTESTNET, TR8_ONE_PRIV, TR8_TWO_PRIV, TR8_THREE_PRIV } = process.env;
+require("hardhat-celo");
+const { API_URL_BASE, API_URL_BASEGOERLI, API_URL_CELO, PRIVATE_KEY, BASESCAN_API_KEY, API_URL_ZKEVMTESTNET, TR8_ONE_PRIV, TR8_TWO_PRIV, TR8_THREE_PRIV, CELOSCAN_API_KEY } = process.env;
 
 module.exports = {
   solidity: {
@@ -74,7 +75,8 @@ module.exports = {
    etherscan: {
     apiKey: {
       baseGoerli: "PLACEHOLDER_STRING",
-      base: BASESCAN_API_KEY
+      base: BASESCAN_API_KEY,
+      celo: CELOSCAN_API_KEY
     },
     customChains: [
       {

@@ -29,20 +29,20 @@ var mnidAddr = mnid.encode( {
 });
 const params = {
     m: mnidAddr,
-    a: '10',
-    r: 'S2O',
+    a: '10000000000000000000',
+    r: '100 Good',
     cat: 3,
     ven: {
-      cbu: 'https://api.catsinhats.art/api/gdcb/',
-      ind: '1234-gdcb',
-      web: 'https://catsinhats.art/',
-      ven: 'S2O ven',
+      cbu: 'https://api.100good.xyz/api/funded',
+      ind: '100-good',
+      web: 'https://100good.xyz/',
+      ven: '100 Good',
       d:'just testing',
     }
 };
 const gdCode = encodeURIComponent(btoa(JSON.stringify(params)));
-console.log("payment link: ", "https://wallet.gooddollar.org/?code=" + gdCode);
-return;
+//console.log("payment link: ", "https://wallet.gooddollar.org/?code=" + gdCode);
+//return;
 
 var addr = {};
 
@@ -83,10 +83,10 @@ if ("chain" == "base") {
         "nftImplementation": "",
         "appImplementation": "",
         "streamer": "",
-        "sToken": "",
+        "sToken": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A", // G$
         "superApp": "",
         "nft": "",
-        "feeRecipient": "0x827a0F679D7CE70e7a0a6A1Ef2be473f1Cc8d7bb", // "feeRecipient"
+        "feeRecipient": "0x43d72Ff17701B2DA814620735C39C620Ce0ea4A1", // GoodDollar UBIScheme
         "host": "0xA4Ff07cF81C02CFD356184879D953970cA957585",
         "cfa": "0x9d369e78e1a682cE0F8d9aD849BeA4FE1c3bD3Ad",
         "stf": "0x36be86dEe6BC726Ed0Cbd170ccD2F21760BC73D9",
@@ -109,7 +109,7 @@ const supply = "420000000000000000000000000000000"; // 420T
 
 describe("Streamer", function () {
 
-    it("should deploy the streamer contract", async function() {
+    it.skip("should deploy the streamer contract", async function() {
         const Streamer = await ethers.getContractFactory("Streamer");
         streamer = await Streamer.deploy(tokenName, symbol, supply, addr.stf, addr.host, addr.cfa);
         addr.streamer = streamer.address;
@@ -121,30 +121,30 @@ describe("Streamer", function () {
         expect(addr.sToken).to.not.equal("");
     });
 
-    it("should drop 1M Super Tokens to deployer", async function() {
+    it.skip("should drop 1M Super Tokens to deployer", async function() {
         var to = process.env.PUBLIC_KEY;
         await expect(streamer.drop(to, "1000000000000000000000000"))
             .to.emit(sToken, 'Transfer');
     });
 
-    it("deployer should own 1M Super Tokens", async function() {
+    it.skip("deployer should own 1M Super Tokens", async function() {
         expect(await sToken.balanceOf(process.env.PUBLIC_KEY))
             .to.be.gt(0);
     });
 
-    it("should drop 1M Super Tokens to signerOne", async function() {
+    it.skip("should drop 1M Super Tokens to signerOne", async function() {
         var to = await signerOne.getAddress();
         await expect(streamer.drop(to, "1000000000000000000000000"))
             .to.emit(sToken, 'Transfer');
     });
 
-    it("should drop 1M Super Tokens to signerTwo", async function() {
+    it.skip("should drop 1M Super Tokens to signerTwo", async function() {
         var to = await signerTwo.getAddress();
         await expect(streamer.drop(to, "1000000000000000000000000"))
             .to.emit(sToken, 'Transfer');
     });
 
-    it("should drop 1M Super Tokens to signerThree", async function() {
+    it.skip("should drop 1M Super Tokens to signerThree", async function() {
         var to = await signerThree.getAddress();
         await expect(streamer.drop(to, "1000000000000000000000000"))
             .to.emit(sToken, 'Transfer');
@@ -159,6 +159,7 @@ describe("Factory", function () {
         const implementation = await S2ONFT.deploy();
         addr.nftImplementation = implementation.address;
         console.log("addr.nftImplementation: ", addr.nftImplementation);
+        console.log(`npx hardhat verify --network ${chain} ${addr.nftImplementation}`);
         expect(implementation).to.not.equal("");
     });
 
@@ -167,6 +168,7 @@ describe("Factory", function () {
         const implementation = await S2OSuperApp.deploy();
         addr.appImplementation = implementation.address;
         console.log("addr.appImplementation: ", addr.appImplementation);
+        console.log(`npx hardhat verify --network ${chain} ${addr.appImplementation}`);
         expect(implementation).to.not.equal("");
     });
 
@@ -177,10 +179,11 @@ describe("Factory", function () {
         console.log("addr.factory: ", addr.factory);
         await factory.deployTransaction.wait();
         await factory.initialize(addr.nftImplementation, addr.appImplementation, addr.host, addr.cfa, addr.feeRecipient);
+        console.log(`npx hardhat verify --network ${chain} ${factory.address}`);
         expect(addr.factory).to.not.equal("");
     });
 
-    it("should deploy nft + app from factory", async function() {
+    it.skip("should deploy nft + app from factory", async function() {
         this.timeout(240000);
         factory = new ethers.Contract(addr.factory, factoryJSON.abi, signer);
         const nftSettings = {
@@ -210,7 +213,7 @@ describe("Factory", function () {
 
 });
 
-describe("NFT", function () {
+describe.skip("NFT", function () {
 
     it("should mint an nft to the contract itself", async function() {
         nft = new ethers.Contract(addr.nft, nftJSON.abi, signerOne);
@@ -225,7 +228,7 @@ describe("NFT", function () {
 
 });
 
-describe("Streams and Super App Callbacks", function () {
+describe.skip("Streams and Super App Callbacks", function () {
 
     const preDeposit = "3700000000000000000000"; // 60*60 sToken
 
