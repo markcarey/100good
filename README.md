@@ -1,4 +1,4 @@
-# Stream2Own NFTs
+# Stream2Own NFTs & 100 Good
 
 Stream2Own (S2O) NFTs are owned by higher streamer. Instead of buying and selling the NFTs, you send a real-time stream. As long as your stream continues, you are the owner of the NFT. But if someone sends a higher stream, they take ownership of the NFT. If you want it back, you have to start an even higher stream. Stream2Own NFTs are thus "always on sale" and always have a (per-second) price.
 
