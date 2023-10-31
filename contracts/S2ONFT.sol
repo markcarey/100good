@@ -58,7 +58,7 @@ contract S2ONFT is Initializable, ERC721Upgradeable, IERC721Receiver, AccessCont
     }
 
     function onStreamChange(address from, address to, uint256 tokenId) public onlyRole(SUPERAPP_ROLE) {
-        // TODO: check settings here, or in SuperApp code?
+        // TODO: check for case where onwer has transfered the NFT to another address
         _transfer(from, to, tokenId);
     }
 

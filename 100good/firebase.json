@@ -1,0 +1,60 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "dapp",
+    "trailingSlash": false,
+    "rewrites": [
+      {
+        "source": "/api/*",
+        "function": "goodApi"
+      },
+      {
+        "source": "/images/*",
+        "function": "goodApi"
+      },
+      {
+        "source": "/meta/**",
+        "function": "goodApi"
+      },
+      {
+        "source": "/profile/*",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/trending/*",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/settings/*",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/p/*",
+        "destination": "/index.html"
+      }
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
