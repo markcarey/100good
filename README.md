@@ -14,7 +14,7 @@ While the owner is continually paying to own the NFT, _the object here is NOT to
 5. If someone else sends a higher stream for your token, the NFT is transferred to them, and your stream is stopped. BUT, as the _previousOwner_, you start receiving a percentage of the new owner's stream, for as long as _their_ stream continues. So there can be benefits to having your NFT taken from you, depending on your perspective.
 6. If you want the NFT back, you can repeat the process and send an even higher stream. Not that NFT deployer benefits from these trades and their incoming stream keeps increasing. This could be described as a unique model for NFT creator royalties -- deployers may take less up front from "mint fees" but stand to earn much more over time, if the NFTs are popular.
 
-### 100 Good
+### 100 Good - A streaming friend.tech for GoodDollar
 
 https://100good.xyz
 
