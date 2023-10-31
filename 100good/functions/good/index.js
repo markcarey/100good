@@ -594,6 +594,7 @@ api.post("/api/join", getAuth, async function (req, res) {
     console.log("streamTxn", streamTxn);
 
     var updates = {
+        "name": req.q.name,
         "prompt": req.q.prompt,
         "safeDeployed": true,
         "nftAddress": nftAddress,
